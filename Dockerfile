@@ -12,6 +12,9 @@ RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
 RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
+# Create non-root user
+RUN addgroup --system appuser && adduser --system --ingroup appuser appuser
+
 # Set the working directory in the container
 WORKDIR /app
 
@@ -23,6 +26,12 @@ RUN poetry install --no-root --no-dev
 
 # Copy the entire application code into the container
 COPY ./app ./app
+
+# Change ownership of app directory
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Expose the port that the FastAPI app will run on
 EXPOSE 8000
