@@ -1,6 +1,6 @@
 # Project
 notebooks/
-tests/
+# tests/
 prj*.json
 
 # Python
@@ -62,3 +62,6 @@ share/python-wheels/
 *.log
 *.tmp
 *.bak
+
+# testing_prompts
+testing_prompts/
