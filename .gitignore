@@ -33,7 +33,7 @@ venv.bak/
 *.cover
 *.log
 nosetests.xml
-coverage.xml
+# coverage.xml
 *.cover
 *.py,cover
 
