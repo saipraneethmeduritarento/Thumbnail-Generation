@@ -112,7 +112,7 @@ def test_write_file_raises_if_client_none():
     gcs = _make_storage_instance()
     gcs.__client__ = None
 
-    with pytest.raises(Exception, match="GCPSyncStorage client not initialized"):
+    with pytest.raises(Exception, match="GCPSStorage client not initialized"):
         gcs.write_file("path/img.jpg", b"bytes", "image/jpeg")
 
 
@@ -139,3 +139,30 @@ def test_public_url_raises_if_client_none():
 
     with pytest.raises(Exception, match="GCP Storage client not initialized"):
         gcs.public_url("path/img.jpg")
+
+
+# -- GCPStorage.__init__ missing env vars ------------------------------------
+
+
+def test_init_raises_if_bucket_name_missing():
+    """GCPStorage.__init__ raises ValueError when GCP_BUCKET_NAME is not set [app/libs/storage.py:19-21]."""
+    with (
+        patch("google.oauth2.service_account.Credentials.from_service_account_file",
+              return_value=MagicMock()),
+        patch("google.cloud.storage.Client", return_value=MagicMock()),
+        patch.dict("os.environ", {"GCP_BUCKET_NAME": "", "GCP_STORAGE_CREDENTIALS": "/tmp/creds.json"}),
+    ):
+        with pytest.raises(ValueError, match="Missing google bucket_name or crendentials"):
+            GCPStorage()
+
+
+def test_init_raises_if_credentials_missing():
+    """GCPStorage.__init__ raises ValueError when GCP_STORAGE_CREDENTIALS is not set [app/libs/storage.py:19-21]."""
+    with (
+        patch("google.oauth2.service_account.Credentials.from_service_account_file",
+              return_value=MagicMock()),
+        patch("google.cloud.storage.Client", return_value=MagicMock()),
+        patch.dict("os.environ", {"GCP_BUCKET_NAME": "my-bucket", "GCP_STORAGE_CREDENTIALS": ""}),
+    ):
+        with pytest.raises(ValueError, match="Missing google bucket_name or crendentials"):
+            GCPStorage()

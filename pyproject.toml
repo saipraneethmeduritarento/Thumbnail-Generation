@@ -17,6 +17,7 @@ langchain-community = "^0.2.12"
 locust = "^2.31.4"
 vertexai = "^1.66.0"
 matplotlib = "^3.9.2"
+pysonar = "^1.6.0.4905"
 
 
 [tool.poetry.dev-dependencies]
@@ -31,6 +32,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+pythonpath = ["."] 
 
 [tool.coverage.run]
 source = ["app"]
@@ -46,7 +48,7 @@ omit = [
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 80
+fail_under = 80 
 
 [build-system]
 requires = ["poetry-core"]

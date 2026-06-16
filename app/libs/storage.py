@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-from typing import Union, Optional
 
 from ..logger import logger
 from .base_storage import Storage
@@ -11,7 +10,6 @@ load_dotenv()
 
 class GCPStorage(Storage):
     __client__ = None
-    # tmp_folder = "/tmp/kb_files"
 
     def __init__(self):
         logger.info("Initializing GCP Storage") 
@@ -31,11 +29,11 @@ class GCPStorage(Storage):
     def write_file(
         self,
         file_path: str,
-        file_content: Union[str, bytes],
-        mime_type: Optional[str] = None,
+        file_content: str | bytes,
+        mime_type: str | None = None,
     ):
         if not self.__client__:
-            raise Exception("GCPSyncStorage client not initialized")
+            raise ValueError("GCPSStorage client not initialized")
 
         bucket = self.__client__.bucket(self.__bucket_name__)
         blob = bucket.blob(file_path)
@@ -51,7 +49,7 @@ class GCPStorage(Storage):
 
     def public_url(self, file_path: str) -> str:
         if not self.__client__:
-            raise Exception("GCP Storage client not initialized")
+            raise ValueError("GCP Storage client not initialized")
 
         bucket = self.__client__.bucket(self.__bucket_name__)
         blob = bucket.blob(file_path)

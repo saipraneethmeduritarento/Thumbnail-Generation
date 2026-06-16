@@ -7,11 +7,10 @@ Covers:
   S8414 — CORSMiddleware wraps error responses
 
 Route inventory source (Phase 1.2):
-  - GET /v1/image/variations/course/{course_id} [app/routers/course.py:30]
-  - GET /v1/image/resource/{resource_id}        [app/routers/resource.py:8]
+  - GET /v2/image/variations/course/{course_id} [app/routers/v2/course.py:11]
 
 CORSMiddleware source: app/main.py:13-19
-Router registration:   app/main.py:18, app/routers/__init__.py:8-9
+Router registration:   app/main.py:21, app/routers/__init__.py
 """
 
 import pytest
@@ -34,39 +33,23 @@ def test_openapi_schema_contains_course_variations_route(client):
     """S8401: Course variations route must be present in OpenAPI schema.
 
     Missing path would indicate a router registration-order bug.
-    Expected path from [app/routers/course.py:30], mounted via
-    app/routers/__init__.py:8 → app/main.py:18.
+    Expected path from [app/routers/v2/course.py:12], mounted via
+    app/routers/__init__.py → app/main.py:21.
     """
     response = client.get("/openapi.json")
     assert response.status_code == 200
     paths = response.json()["paths"]
-    assert "/v1/image/variations/course/{course_id}" in paths, (
-        "S8401: /v1/image/variations/course/{course_id} missing from OpenAPI schema — "
-        "check router registration order in app/routers/__init__.py and app/main.py"
-    )
-
-
-def test_openapi_schema_contains_resource_route(client):
-    """S8401: Resource route must be present in OpenAPI schema.
-
-    Expected path from [app/routers/resource.py:8], mounted via
-    app/routers/__init__.py:9 → app/main.py:18.
-    """
-    response = client.get("/openapi.json")
-    assert response.status_code == 200
-    paths = response.json()["paths"]
-    assert "/v1/image/resource/{resource_id}" in paths, (
-        "S8401: /v1/image/resource/{resource_id} missing from OpenAPI schema — "
+    assert "/v2/image/variations/course/{course_id}" in paths, (
+        "S8401: /v2/image/variations/course/{course_id} missing from OpenAPI schema — "
         "check router registration order in app/routers/__init__.py and app/main.py"
     )
 
 
 def test_openapi_schema_all_routes_present(client):
     """S8401: Full route inventory from Phase 1.2 must appear in OpenAPI schema."""
-    # All active routes from CODEBASE_SUMMARY.md Phase 1.2
+    # All active routes
     expected_paths = [
-        "/v1/image/variations/course/{course_id}",  # app/routers/course.py:30
-        "/v1/image/resource/{resource_id}",          # app/routers/resource.py:8
+        "/v2/image/variations/course/{course_id}",  # app/routers/v2/course.py:12
     ]
     response = client.get("/openapi.json")
     assert response.status_code == 200
@@ -108,10 +91,17 @@ def test_no_204_routes_exist(client):
 
 def test_cors_header_present_on_success_response(client):
     """S8414: CORSMiddleware [app/main.py:13-19] must add CORS headers to normal responses."""
-    response = client.get(
-        "/v1/image/resource/res-00000000000001",
-        headers={"Origin": "http://test-origin.example.test"},
-    )
+    with patch(
+        "app.routers.v2.course.generate_image_variations",
+        return_value=(
+            {"found": False, "warning": None},
+            ["http://test-kb-host.example.test/test/proxy/do-0000000000001/t_0.jpg"],
+        ),
+    ):
+        response = client.get(
+            "/v2/image/variations/course/do-0000000000001",
+            headers={"Origin": "http://test-origin.example.test"},
+        )
     assert response.status_code == 200
     # CORSMiddleware should add Access-Control-Allow-Origin [app/main.py:15 — allow_origins=["*"]]
     assert "access-control-allow-origin" in response.headers, (
@@ -128,14 +118,14 @@ def test_cors_header_present_on_error_response(client):
     error response.
 
     CORSMiddleware is added via app.add_middleware [app/main.py:13-19] and
-    app.include_router is called after [app/main.py:18] — correct ordering.
+    app.include_router is called after [app/main.py:21] — correct ordering.
     """
     with patch(
-        "app.routers.course.generate_image_variations",
+        "app.routers.v2.course.generate_image_variations",
         side_effect=Exception("forced error for S8414 test"),
     ):
         response = client.get(
-            "/v1/image/variations/course/do-0000000000001",
+            "/v2/image/variations/course/do-0000000000001",
             headers={"Origin": "http://test-origin.example.test"},
         )
 
@@ -150,7 +140,7 @@ def test_cors_header_present_on_error_response(client):
 def test_cors_preflight_request(client):
     """CORS preflight (OPTIONS) must be handled by CORSMiddleware [app/main.py:13-19]."""
     response = client.options(
-        "/v1/image/resource/res-00000000000001",
+        "/v2/image/variations/course/do-0000000000001",
         headers={
             "Origin": "http://test-origin.example.test",
             "Access-Control-Request-Method": "GET",
@@ -171,13 +161,13 @@ def test_logo_detection_warning_field_accepts_none(client):
     serialises correctly (no ValidationError on the server side).
     """
     with patch(
-        "app.routers.course.generate_image_variations",
+        "app.routers.v2.course.generate_image_variations",
         return_value=(
             {"found": False, "warning": None},  # warning explicitly None
             ["http://test-kb-host.example.test/test/proxy/do-0000000000001/t_0.jpg"],
         ),
     ):
-        response = client.get("/v1/image/variations/course/do-0000000000001")
+        response = client.get("/v2/image/variations/course/do-0000000000001")
 
     assert response.status_code == 200
     assert response.json()["logo"]["warning"] is None
@@ -187,13 +177,13 @@ def test_logo_detection_warning_field_accepts_string(client):
     """S8396: LogoDetection.warning must also accept a non-None string value."""
     warning_text = "This image contains a logo."
     with patch(
-        "app.routers.course.generate_image_variations",
+        "app.routers.v2.course.generate_image_variations",
         return_value=(
             {"found": True, "warning": warning_text},
             ["http://test-kb-host.example.test/test/proxy/do-0000000000002/t_0.jpg"],
         ),
     ):
-        response = client.get("/v1/image/variations/course/do-0000000000002")
+        response = client.get("/v2/image/variations/course/do-0000000000002")
 
     assert response.status_code == 200
     assert response.json()["logo"]["warning"] == warning_text

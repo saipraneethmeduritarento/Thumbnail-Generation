@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Union, Optional
 
 class Storage(ABC):
     @abstractmethod
     def write_file(
         self,
         file_path: str,
-        file_content: Union[str, bytes],
-        mime_type: Optional[str] = None,
+        file_content: str | bytes,
+        mime_type: str | None = None,
     ):
         """
         Write file to internal storage

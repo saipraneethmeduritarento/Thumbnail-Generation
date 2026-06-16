@@ -34,7 +34,7 @@ GEMINI_MODEL_PRO = os.environ["GEMINI_MODEL_PRO"]
 VISION_MODEL = os.environ["VISION_MODEL"]
 NUMBER_OF_IMAGES = os.environ["NUMBER_OF_IMAGES"]
 DEFAULT_PROMPT=config.DEFAULT_PROMPT
-# DEFAULT_PROMPT="What is in this image?" #
+
 NEGATIVE_PROMPT = config.NEGATIVE_PROMPT
 PERSON_GENERATION=config.PERSON_GENERATION
 SAFETY_FILTER_LEVEL=config.SAFETY_FILTER_LEVEL
@@ -158,29 +158,11 @@ def detect_logos(image_url: str, image_mimetype: str) -> str:
             }
         }
     }
-    safety_settings = [
-        SafetySetting(
-            category=SafetySetting.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-            threshold=SafetySetting.HarmBlockThreshold.BLOCK_NONE
-        ),
-        SafetySetting(
-            category=SafetySetting.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-            threshold=SafetySetting.HarmBlockThreshold.BLOCK_NONE
-        ),
-        SafetySetting(
-            category=SafetySetting.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-            threshold=SafetySetting.HarmBlockThreshold.BLOCK_NONE
-        ),
-        SafetySetting(
-            category=SafetySetting.HarmCategory.HARM_CATEGORY_HARASSMENT,
-            threshold=SafetySetting.HarmBlockThreshold.BLOCK_NONE
-        ),
-    ]
+
     response = model.generate_content(
         [image_part, text_part],
         generation_config=generation_config,
-        # safety_settings=safety_settings,
-        # stream=True,
+
     )
     logger.info(f"Uasage details for LOGO :: {response.usage_metadata}")
     logger.info(f"Logo Detection :: {response.text}")
@@ -195,34 +177,14 @@ def generate_content(image_url: str, image_mimetype: str) -> str:
             mime_type=image_mimetype,
         )
     generation_config = GenerationConfig(
-        # temperature=1,
-        # top_p=0.95,
-        # top_k=40,
-        # candidate_count=1,
+
         max_output_tokens=512
     )
-    # safety_settings = [
-    #     SafetySetting(
-    #         category=SafetySetting.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-    #         threshold=SafetySetting.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    #     ),
-    #     SafetySetting(
-    #         category=SafetySetting.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-    #         threshold=SafetySetting.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    #     ),
-    #     SafetySetting(
-    #         category=SafetySetting.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-    #         threshold=SafetySetting.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    #     ),
-    #     SafetySetting(
-    #         category=SafetySetting.HarmCategory.HARM_CATEGORY_HARASSMENT,
-    #         threshold=SafetySetting.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    #     ),
-    # ]
+
     response = gemini.generate_content(
         contents = [image_part, text_part], 
         generation_config=generation_config,
-        # safety_settings=safety_settings
+
     )
     logger.info(f"Uasage details for generate content :: {response.usage_metadata}")
     logger.info(f"Generated content :: {response.text}")
@@ -230,8 +192,7 @@ def generate_content(image_url: str, image_mimetype: str) -> str:
 
 def generate_image(image_prompt: str) -> ImageGenerationResponse:
 
-    # if not image_prompt:
-    #     raise TypeError("image_prompt must not be empty")
+
 
     image_model = ImageGenerationModel.from_pretrained(VISION_MODEL)
     images = image_model.generate_images(

@@ -1,25 +1,29 @@
 import os
-from typing import Union
 from urllib.parse import urlparse
 
 # Constants
 ASSET_PREFIX: str = "/assets/public/"
+MIME_PNG: str = "image/png"
+MIME_JPEG: str = "image/jpeg"
+EXT_PNG: str = "png"
+EXT_JPEG: str = "jpeg"
+EXT_JPG: str = "jpg"
+
+# Default values
+DEFAULT_EXTENSION: str = EXT_JPG
+DEFAULT_MIME_TYPE: str = MIME_JPEG
 
 # Mappings
 MIME_TO_EXTENSION: dict[str, str] = {
-    "image/png": "png",
-    "image/jpeg": "jpg"
+    MIME_PNG: EXT_PNG,
+    MIME_JPEG: EXT_JPG,
 }
 
 EXTENSION_TO_MIME_TYPE: dict[str, str] = {
-    "png": "image/png",
-    "jpeg": "image/jpeg",
-    "jpg": "image/jpeg"
+    EXT_PNG: MIME_PNG,
+    EXT_JPEG: MIME_JPEG,
+    EXT_JPG: MIME_JPEG,
 }
-
-# Default values
-DEFAULT_EXTENSION: str = "jpg"
-DEFAULT_MIME_TYPE: str = "image/jpeg"
 
 def format_storage_url(image_url: str, asset_prefix = ASSET_PREFIX) -> str:
     urlparts = urlparse(image_url)
@@ -45,6 +49,6 @@ def get_file_mimetype(file_path):
   extension = get_file_extension(file_path)
   return EXTENSION_TO_MIME_TYPE.get(extension, DEFAULT_MIME_TYPE)
 
-def get_extension_from_mimetype(mime_type: str) -> Union[str, None]:
+def get_extension_from_mimetype(mime_type: str) -> str | None:
     # Use a dictionary to map mimetypes to extensions
-    return MIME_TO_EXTENSION.get(mime_type.lower(), "png")
+    return MIME_TO_EXTENSION.get(mime_type.lower(), EXT_PNG)

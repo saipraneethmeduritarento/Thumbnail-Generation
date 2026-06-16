@@ -33,9 +33,11 @@ venv.bak/
 *.cover
 *.log
 nosetests.xml
-# coverage.xml
+coverage.xml
 *.cover
 *.py,cover
+.coverage
+
 
 # Distribution / packaging
 .Python
@@ -62,6 +64,7 @@ share/python-wheels/
 *.log
 *.tmp
 *.bak
+.sonar/
+.sonarlint/
+*.md
 
-# testing_prompts
-testing_prompts/

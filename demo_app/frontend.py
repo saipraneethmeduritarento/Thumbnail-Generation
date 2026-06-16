@@ -16,7 +16,7 @@ def fetch_image_variations(course_id):
         requests.exceptions.RequestException: If there's an error making the API request.
     """
 
-    url = f"http://localhost:8000/v1/image/variations/course/{course_id}"
+    url = f"http://localhost:8000/v2/image/variations/course/{course_id}"
     headers = {"accept": "application/json"}
 
     try:

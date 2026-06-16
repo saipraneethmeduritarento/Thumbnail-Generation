@@ -1,7 +1,7 @@
 """
-Tests for GET /v1/image/variations/course/{course_id}
+Tests for GET /v2/image/variations/course/{course_id}
 
-Route source:   app/routers/course.py:30-40
+Route source:   app/routers/v2/course.py:11-28
 Response model: app/models.py:9-12  (ImageVariationResponse)
 Pydantic models read: app/models.py:5-12
 
@@ -12,11 +12,11 @@ content-type (no JSON string passed to data=).
 import pytest
 from unittest.mock import patch
 
-# Patch target: generate_image_variations is imported by name into the router
-# module [app/routers/course.py:5], so we patch it there.
-_SERVICE_PATCH = "app.routers.course.generate_image_variations"
+# Patch target: generate_image_variations is imported by name into the v2 router
+# module [app/routers/v2/course.py:5], so we patch it there.
+_SERVICE_PATCH = "app.routers.v2.course.generate_image_variations"
 
-_COURSE_URL = "/v1/image/variations/course/{course_id}"
+_COURSE_URL = "/v2/image/variations/course/{course_id}"
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ def test_get_course_variations_happy_path_no_logo(client):
     """
     logo, urls = _no_logo_result()
     with patch(_SERVICE_PATCH, return_value=(logo, urls)):
-        response = client.get("/v1/image/variations/course/do-0000000000001")
+        response = client.get("/v2/image/variations/course/do-0000000000001")
 
     assert response.status_code == 200  # [app/routers/course.py:37]
     body = response.json()
@@ -80,7 +80,7 @@ def test_get_course_variations_happy_path_with_logo(client):
         "http://test-kb-host.example.test/test/proxy/do-0000000000002/thumb_1.jpg",
     ])
     with patch(_SERVICE_PATCH, return_value=(logo, urls)):
-        response = client.get("/v1/image/variations/course/do-0000000000002")
+        response = client.get("/v2/image/variations/course/do-0000000000002")
 
     assert response.status_code == 200
     body = response.json()
@@ -96,7 +96,7 @@ def test_get_course_variations_empty_image_list(client):
     200 with images=[] is the expected response.
     """
     with patch(_SERVICE_PATCH, return_value=({"found": False, "warning": None}, [])):
-        response = client.get("/v1/image/variations/course/do-0000000000003")
+        response = client.get("/v2/image/variations/course/do-0000000000003")
 
     assert response.status_code == 200  # [app/routers/course.py:37]
     assert response.json()["images"] == []
@@ -109,7 +109,7 @@ def test_get_course_variations_multiple_image_urls(client):
         for i in range(4)
     ]
     with patch(_SERVICE_PATCH, return_value=({"found": False, "warning": None}, urls)):
-        response = client.get("/v1/image/variations/course/do-0000000000004")
+        response = client.get("/v2/image/variations/course/do-0000000000004")
 
     assert response.status_code == 200
     assert len(response.json()["images"]) == 4
@@ -122,7 +122,7 @@ def test_get_course_variations_course_id_accepts_any_string(client):
     FastAPI accepts any non-empty string — no 422 for string path params.
     """
     with patch(_SERVICE_PATCH, return_value=_no_logo_result()):
-        response = client.get("/v1/image/variations/course/arbitrary-string-id-123")
+        response = client.get("/v2/image/variations/course/arbitrary-string-id-123")
 
     assert response.status_code == 200  # no validation rejection
 
@@ -138,7 +138,7 @@ def test_get_course_variations_sql_injection_in_course_id(client):
     """
     sql_payload = "' OR '1'='1"
     with patch(_SERVICE_PATCH, return_value=_no_logo_result()):
-        response = client.get(f"/v1/image/variations/course/{sql_payload}")
+        response = client.get(f"/v2/image/variations/course/{sql_payload}")
 
     assert response.status_code == 200
     assert "OR '1'='1" not in response.text
@@ -148,7 +148,7 @@ def test_get_course_variations_sql_injection_drop_table(client):
     """SQL injection: DROP TABLE payload in course_id."""
     with patch(_SERVICE_PATCH, return_value=_no_logo_result()):
         response = client.get(
-            "/v1/image/variations/course/'; DROP TABLE users;--"
+            "/v2/image/variations/course/'; DROP TABLE users;--"
         )
 
     assert response.status_code in (200, 404, 422)  # must not be 500
@@ -163,7 +163,7 @@ def test_get_course_variations_xss_in_course_id(client):
     """
     xss_payload = "<script>alert(1)</script>"
     with patch(_SERVICE_PATCH, return_value=_no_logo_result()):
-        response = client.get(f"/v1/image/variations/course/{xss_payload}")
+        response = client.get(f"/v2/image/variations/course/{xss_payload}")
 
     # Raw unescaped script must not appear in response [OWASP A03]
     assert "<script>alert(1)</script>" not in response.text
@@ -173,7 +173,7 @@ def test_get_course_variations_xss_img_onerror_in_course_id(client):
     """XSS via img onerror in course_id."""
     with patch(_SERVICE_PATCH, return_value=_no_logo_result()):
         response = client.get(
-            '/v1/image/variations/course/"><img src=x onerror=alert(1)>'
+            '/v2/image/variations/course/"><img src=x onerror=alert(1)>'
         )
 
     assert '"><img src=x onerror=alert(1)>' not in response.text
@@ -187,7 +187,7 @@ def test_get_course_variations_path_traversal_in_course_id(client):
     """
     traversal_payload = "../../etc/passwd"
     with patch(_SERVICE_PATCH, return_value=_no_logo_result()):
-        response = client.get(f"/v1/image/variations/course/{traversal_payload}")
+        response = client.get(f"/v2/image/variations/course/{traversal_payload}")
 
     # FastAPI/Starlette normalizes path separators in URL params — 404 is safe (route not matched).
     # 200 is also safe (service is mocked). 500 is NOT acceptable [app/routers/course.py:38-39].
@@ -202,7 +202,7 @@ def test_get_course_variations_mass_assignment_ignored(client):
     This is a structural check given the route signature [app/routers/course.py:31].
     """
     with patch(_SERVICE_PATCH, return_value=_no_logo_result()) as mock_svc:
-        response = client.get("/v1/image/variations/course/do-0000000000001")
+        response = client.get("/v2/image/variations/course/do-0000000000001")
 
     assert response.status_code == 200
     # Service called with exactly the course_id string
@@ -216,7 +216,7 @@ def test_get_course_variations_no_auth_required(client):
     Unauthenticated request must succeed (not return 401 or 403).
     """
     with patch(_SERVICE_PATCH, return_value=_no_logo_result()):
-        response = client.get("/v1/image/variations/course/do-0000000000001")
+        response = client.get("/v2/image/variations/course/do-0000000000001")
 
     assert response.status_code not in (401, 403)
 
@@ -225,7 +225,7 @@ def test_get_course_variations_no_auth_header_accepted(client):
     """Confirm no Authorization header is required [app/routers/course.py:31]."""
     with patch(_SERVICE_PATCH, return_value=_no_logo_result()):
         response = client.get(
-            "/v1/image/variations/course/do-0000000000001",
+            "/v2/image/variations/course/do-0000000000001",
             headers={},  # explicitly no Authorization header
         )
 
@@ -242,7 +242,7 @@ def test_get_course_variations_service_raises_exception_returns_500(client):
            This test verifies the behavior; the S8415 gap is a documentation issue.
     """
     with patch(_SERVICE_PATCH, side_effect=Exception("upstream failure")):
-        response = client.get("/v1/image/variations/course/do-0000000000001")
+        response = client.get("/v2/image/variations/course/do-0000000000001")
 
     # Status code from [app/routers/course.py:39]
     assert response.status_code == 500
@@ -261,7 +261,7 @@ def test_get_course_variations_error_response_no_stack_trace(client):
         _SERVICE_PATCH,
         side_effect=RuntimeError("db://secret:pass@internal-db-host/prod"),
     ):
-        response = client.get("/v1/image/variations/course/do-0000000000001")
+        response = client.get("/v2/image/variations/course/do-0000000000001")
 
     assert response.status_code == 500
     # Original exception detail must not appear in response
@@ -274,7 +274,7 @@ def test_get_course_variations_error_response_no_stack_trace(client):
 def test_get_course_variations_error_detail_is_safe_string(client):
     """Exact safe error detail string from [app/routers/course.py:39]."""
     with patch(_SERVICE_PATCH, side_effect=ValueError("any internal message")):
-        response = client.get("/v1/image/variations/course/do-0000000000001")
+        response = client.get("/v2/image/variations/course/do-0000000000001")
 
     assert response.json()["detail"] == "Something went wrong, please try again later..."
 
@@ -287,7 +287,7 @@ def test_get_course_variations_response_model_exact_fields(client):
     No extra fields leaked.
     """
     with patch(_SERVICE_PATCH, return_value=_no_logo_result()):
-        response = client.get("/v1/image/variations/course/do-0000000000001")
+        response = client.get("/v2/image/variations/course/do-0000000000001")
 
     body = response.json()
     # Top-level: only 'images' and 'logo' [app/models.py:10-11]
@@ -299,7 +299,7 @@ def test_get_course_variations_response_model_exact_fields(client):
 def test_get_course_variations_no_sensitive_fields_in_response(client):
     """Response must not contain any sensitive field names [OWASP A05]."""
     with patch(_SERVICE_PATCH, return_value=_no_logo_result()):
-        response = client.get("/v1/image/variations/course/do-0000000000001")
+        response = client.get("/v2/image/variations/course/do-0000000000001")
 
     assert "password" not in response.text
     assert "token" not in response.text
@@ -310,22 +310,20 @@ def test_get_course_variations_no_sensitive_fields_in_response(client):
 
 # ── 3.7 FastAPI-Specific: S8415 Ghost Exception ────────────────────────────
 
-def test_get_course_variations_openapi_does_not_document_500(client):
-    """S8415: GET /v1/image/variations/course/{course_id} raises HTTPException(500)
-    [app/routers/course.py:39] but the decorator has no responses={500: ...}
-    [app/routers/course.py:30].
+def test_get_course_variations_openapi_documents_500(client):
+    """S8415 fix confirmed: GET /v2/image/variations/course/{course_id} raises
+    HTTPException(500) [app/routers/v2/course.py:28] and the decorator documents
+    it via responses={500: ...} [app/routers/v2/course.py:15-17].
 
-    This test asserts the S8415 finding is present (500 not in documented responses).
-    If this test starts FAILING, the S8415 gap has been fixed — remove this test
-    and update CODEBASE_SUMMARY.md accordingly.
+    S8415 finding is RESOLVED in the v2 router.
     """
     response = client.get("/openapi.json")
     course_path = response.json()["paths"].get(
-        "/v1/image/variations/course/{course_id}", {}
+        "/v2/image/variations/course/{course_id}", {}
     )
     documented_responses = set(course_path.get("get", {}).get("responses", {}).keys())
-    # S8415 finding: 500 is NOT documented [app/routers/course.py:30]
-    assert "500" not in documented_responses, (
-        "500 is now documented on this route — S8415 finding resolved. "
-        "Remove this test and update CODEBASE_SUMMARY.md."
+    # S8415 resolved: 500 IS documented [app/routers/v2/course.py:15-17]
+    assert "500" in documented_responses, (
+        "500 must be documented on this route to comply with S8415. "
+        "Check responses= in app/routers/v2/course.py."
     )
