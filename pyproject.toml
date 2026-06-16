@@ -42,8 +42,6 @@ omit = [
     "app/logger.py",
     "app/**/migrations/**",
     "app/**/__init__.py",
-    # Dead code — only used by commented-out route [app/routers/course.py:13-27]
-    "app/services/course.py",
 ]
 
 [tool.coverage.report]
